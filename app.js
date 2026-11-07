@@ -116,4 +116,4 @@ function showNotes(){activeView="notes";destroyMap();app.innerHTML=`<div class="
 function setNav(v){document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.nav===v))}
 document.querySelectorAll(".nav-item").forEach(b=>b.onclick=()=>b.dataset.nav==="overview"?showOverview():b.dataset.nav==="map"?showAllMap():showNotes());
 document.getElementById("overviewButton").onclick=showOverview;document.getElementById("homeLink").onclick=e=>{e.preventDefault();showOverview()};
-fetch("data/itinerary.json").then(r=>r.json()).then(d=>{tripData=d;showOverview()}).catch(()=>app.innerHTML='<div class="loading">일정 데이터를 불러오지 못했습니다. data/itinerary.json 파일을 확인해 주세요.</div>');
+fetch("itinerary.json").then(r=>r.json()).then(d=>{tripData=d;showOverview()}).catch(()=>app.innerHTML='<div class="loading">일정 데이터를 불러오지 못했습니다. data/itinerary.json 파일을 확인해 주세요.</div>');
