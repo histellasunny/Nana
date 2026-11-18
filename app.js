@@ -20,7 +20,7 @@ function showDay(n){
   app.innerHTML=`<div class="detail-top"><div class="backline"><button class="back-button" id="back">← 전체 일정</button><div><button class="day-switch" id="prev" ${n===1?"disabled":""}>‹ 이전</button>　<button class="day-switch" id="next" ${n===9?"disabled":""}>다음 ›</button></div></div><h1 class="day-title">DAY ${String(n).padStart(2,"0")}</h1><p class="day-subtitle">${dateFmt(d.date)}　／　${esc(d.region)}</p></div>
   <div class="detail-cover"><img src="${dayImage(d.day)}" alt="${esc(d.region)}"><div class="cover-label"><strong>${esc(d.region)}</strong><span>${esc(d.summary)}</span></div></div>
   <div class="tabs"><button class="tab active" data-tab="schedule">일정</button><button class="tab" data-tab="map">지도</button><button class="tab" data-tab="notes">메모</button></div>
-  <section id="schedulePanel"><div class="section-head"><h2>Today's itinerary</h2><small>${d.activities.length} ACTIVITIES</small></div><div class="timeline">${d.activities.map((a,i)=>`<div class="event" data-event="${i}" data-name="${esc(a[1])}"><div class="event-time">${esc(a[0])}</div><div class="event-dot"></div><div><div class="event-title">${esc(a[1])}</div>${a[3]?`<div class="event-note">${esc(a[3])}</div>`:""}<span class="event-tag">${esc(a[2])}</span></div></div>`).join("")}</div></section>
+  <section id="schedulePanel"><div class="section-head"><h2>Today's itinerary</h2><small>${d.activities.length} ACTIVITIES</small></div><div class="timeline">${d.activities.map((a,i)=>`<div class="event" data-event="${i}" data-name="${esc(a[1])}"><div class="event-time">${esc(a[0])}</div><div class="event-dot"></div><div><div class="event-title">${esc(a[1])}</div>${a[4] || (["관광","쇼핑","식사","카페","디저트","액티비티","바·야경"].includes(a[2]) && !["중식","석식","조식","식사"].includes(a[1].trim())) ? `<a class="event-map-link" target="_blank" rel="noopener" href="${esc(a[5] || ("https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(a[4] || (cleanPlaceName(a[1])+", "+guessCity(d)))))}" onclick="event.stopPropagation()">Google Maps ↗</a>` : ""}${a[3]?`<div class="event-note">${esc(a[3])}</div>`:""}<span class="event-tag">${esc(a[2])}</span></div></div>`).join("")}</div></section>
   <section id="mapPanel" class="map-section" hidden><div class="map-head"><h3>Today's route</h3><span>장소를 선택해 위치 확인</span></div><div id="dayMap" class="map-box"><div class="empty-map">지도를 불러오는 중입니다.</div></div><p class="map-help">장소 위치는 지도 검색 결과를 바탕으로 표시됩니다. 정확한 장소가 확인되지 않으면 지도 핀을 생성하지 않습니다.</p><div id="mapPlaceList" class="map-list"></div></section>
   <section id="notesPanel" hidden><div class="section-head"><h2>Travel notes</h2></div>${d.notes?.length?d.notes.map(x=>`<div class="notice">${esc(x)}</div>`).join(""):'<div class="note-card">이 날짜에 별도 메모가 없습니다.</div>'}<div class="note-card">숙소 · ${esc(d.stay)}</div></section>
   <div class="footer-note">DAY ${n} / ${tripData.trip.duration} · MALAYSIA & SINGAPORE</div>`;
@@ -56,8 +56,18 @@ function cleanPlaceName(name){
  return replacements[s]||s;
 }
 function getMappableActivities(d){
- const skip=["이동","조식","중식","석식","기상","취침","체크인","체크아웃","수하물","출발","도착","입국심사","출국심사","자유시간","BTS","BAR","공항","호텔","짐 보관","짐 찾기","취침"];
- return d.activities.map((a,i)=>({a,i})).filter(({a})=>!skip.some(w=>a[1].includes(w)) && !["휴식","항공"].includes(a[2]));
+ const generic = ["이동","기상","세면","취침","체크인","체크아웃","수하물","출발","도착","입국심사","출국심사","자유시간","짐 보관","짐 찾기","티켓 교환","줄서기"];
+ return d.activities.map((a,i)=>({a,i})).filter(({a})=>{
+   const name = a[1] || "";
+   const category = a[2] || "";
+   const hasMapQuery = !!a[4];
+   if (hasMapQuery) return true;
+   if (["휴식","항공","공항","숙소"].includes(category)) return false;
+   if (["식사","카페","디저트"].includes(category) && !a[4] && ["조식","중식","석식","식사"].includes(name.trim())) return false;
+   if (generic.some(w=>name.includes(w))) return false;
+   if (["조식","중식","석식","식사","BAR"].includes(name.trim())) return false;
+   return name.trim().length > 1;
+ });
 }
 async function geocode(q){
  if(geocodeCache[q])return geocodeCache[q];
@@ -76,9 +86,17 @@ async function initDayMap(){
  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'}).addTo(currentMap);
  const places=getMappableActivities(d),found=[];
  const list=document.getElementById("mapPlaceList");
- list.innerHTML=places.map(({a,i},k)=>`<div class="map-place"><span class="marker-number">${k+1}</span><span>${esc(a[1])}</span><a class="place-link" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(cleanPlaceName(a[1])+", "+guessCity(d))}">지도 검색 ↗</a></div>`).join("");
+ list.innerHTML=places.map(({a,i},k)=>{
+   const query=a[4] || (cleanPlaceName(a[1])+", "+guessCity(d));
+   const href=a[5] || ("https://www.google.com/maps/search/?api=1&query="+encodeURIComponent(query));
+   return `<div class="map-place"><span class="marker-number">${k+1}</span><span>${esc(a[1])}</span><a class="place-link" target="_blank" rel="noopener" href="${esc(href)}">지도 검색 ↗</a></div>`;
+ }).join("");
  for(let k=0;k<places.length;k++){
-  const {a,i}=places[k];const query=cleanPlaceName(a[1])+", "+guessCity(d);
+  const {a,i}=places[k];
+  // Restaurants and cafes stay as searchable map-list entries until an exact branch link is supplied.
+  // This avoids pinning an arbitrary branch when a chain has multiple locations.
+  if(["식사","카페","디저트","선택 장소"].includes(a[2])) continue;
+  const query=a[4] || (cleanPlaceName(a[1])+", "+guessCity(d));
   const p=await geocode(query);
   if(p){found.push({...p,name:a[1],index:i,number:k+1});}
   await new Promise(r=>setTimeout(r,1050));
@@ -116,4 +134,4 @@ function showNotes(){activeView="notes";destroyMap();app.innerHTML=`<div class="
 function setNav(v){document.querySelectorAll(".nav-item").forEach(b=>b.classList.toggle("active",b.dataset.nav===v))}
 document.querySelectorAll(".nav-item").forEach(b=>b.onclick=()=>b.dataset.nav==="overview"?showOverview():b.dataset.nav==="map"?showAllMap():showNotes());
 document.getElementById("overviewButton").onclick=showOverview;document.getElementById("homeLink").onclick=e=>{e.preventDefault();showOverview()};
-fetch("itinerary.json").then(r=>r.json()).then(d=>{tripData=d;showOverview()}).catch(()=>app.innerHTML='<div class="loading">일정 데이터를 불러오지 못했습니다. data/itinerary.json 파일을 확인해 주세요.</div>');
+fetch("itinerary.json").then(r=>r.json()).then(d=>{tripData=d;showOverview()}).catch(()=>app.innerHTML='<div class="loading">일정 데이터를 불러오지 못했습니다. itinerary.json 파일을 확인해 주세요.</div>');
