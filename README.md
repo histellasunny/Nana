@@ -1,32 +1,43 @@
-# Malaysia & Singapore Travel Guide
+# Nana Travel Itinerary · Malaysia & Singapore
 
-2026년 11월 25일–12월 3일 가족 여행용 모바일 우선 웹사이트입니다.
+A mobile-first travel companion for the family trip from 25 November to 3 December 2026.
+The UI is rebuilt to follow the approved reference: bright sky-blue and white surfaces, Lato for English, Noto Sans KR for Korean, large travel photography, daily itinerary cards, date-specific map pins, and a shared memo board.
 
-## GitHub Repository 파일 구조
-아래 5개 파일을 Repository 최상위(root)에 업로드합니다.
-- index.html
-- style.css
-- app.js
-- itinerary.json
-- README.md
+## Files to upload
+Upload the contents of this ZIP (not the ZIP file itself) to the root of your GitHub Pages repository:
+- `index.html`
+- `style.css`
+- `app.js`
+- `config.js`
+- `itinerary.json`
+- `SUPABASE_SETUP.sql`
+- `README.md`
 
-## 일정 수정
-날짜별 시간표는 `itinerary.json`에 저장되어 있습니다. 새 공유 엑셀의 `7박 스케줄` 시트를 반영해 날짜별 일정을 갱신했습니다. `경비(개별)` 및 `호텔` 시트는 별도 예산 페이지가 요청되지 않아 이번 웹사이트 일정 변경에는 반영하지 않았습니다.
+Keep all files together at the repository root. Do not place them inside an extra folder.
 
-## GitHub Pages 배포
-Repository → Settings → Pages → Deploy from a branch → `main` → `/(root)`로 설정합니다.
+## Supabase shared memo setup
+The browser configuration in `config.js` already contains the Project URL and the Publishable key supplied in the conversation. A Publishable key is intended for browser use; do not add a Secret key or `service_role` key to this file.
 
-## 지도 안내
-Leaflet과 OpenStreetMap 타일을 사용합니다. 지도는 장소명을 바탕으로 검색하며, 음식점·대안 장소는 Google Maps 검색 링크도 제공합니다. 지점이 여러 개인 식당은 사용자가 전달한 정확한 Google Maps 공유 링크 또는 확인된 지점을 기준으로 고정 핀으로 보완할 수 있습니다. 지도 경로선은 참고용 직선이며 실제 도로/보행 경로가 아닙니다.
+1. Open your Supabase project.
+2. Go to **SQL Editor → New query**.
+3. Open `SUPABASE_SETUP.sql`, copy the whole script, paste it into SQL Editor, and click **Run**.
+4. If the table is not available through the API, open **Project Settings → API → Data API** (the exact menu label may vary) and make sure the `public` schema / `travel_memos` table is exposed to the Data API.
+5. Open the deployed website and select **Memo**.
+6. The memo screen should show “Connected”. Submit a test note and check that it appears in the list.
 
-## 일정 데이터 원칙
-새 업로드 엑셀의 날짜, 시각, 항목, 비고 순서를 반영했습니다. 시간이 없던 하위 항목은 상위 시간 블록을 그대로 사용했습니다. 장소가 `?` 또는 미정으로 표시된 부분은 임의로 정하지 않았습니다.
+The SQL creates `public.travel_memos` and grants anonymous visitors read and insert access under Row Level Security. Anyone with the website link can read and add notes. There is no public update or delete policy. Do not store passwords, payment details, passport information, or other sensitive personal data in the memo board.
 
+New notes are refreshed on other viewers' pages approximately every 15 seconds while the Memo page is open. This is periodic refresh, not instant push notification.
 
-## 이번 업데이트
-- DAY 2 야간 수영 또는 The Exchange TRX 선택지 유지
-- DAY 4 미제공 정보는 미정으로 표시
-- DAY 6 야경 장소를 CE LA VI로 확정하고 ATLAS 제거
-- DAY 8 Jewel Early Check-in Lounge 항공사: Singapore Airlines
-- 일정의 장소명에서 Google Maps 검색 링크를 바로 열 수 있도록 추가
-- 비용 정보는 웹사이트에서 사용하지 않음
+## Daily maps
+The Map tab is date-based. Select a day to see location pins in itinerary order. Named locations are geocoded through the OpenStreetMap Nominatim service; unresolved names remain in the list with Google Maps search links. The blue connecting line is a visual ordering guide and is not turn-by-turn navigation. Four exact Google Maps share links supplied by the user remain in `itinerary.json`.
+
+## Publishing with GitHub Pages
+1. Extract this ZIP on your computer.
+2. Open the existing GitHub repository.
+3. Choose **Add file → Upload files**.
+4. Upload all seven files from the extracted folder to the repository root, replacing the previous versions.
+5. Commit the changes to the publishing branch (normally `main`).
+6. Open **Settings → Pages** and confirm the correct branch and `/ (root)` folder are selected.
+
+The site uses hosted fonts, Leaflet map assets, Supabase JS, and OpenStreetMap tiles, so visitors need an internet connection.
